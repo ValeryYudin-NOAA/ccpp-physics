@@ -4,20 +4,13 @@ module cires_ugwp_ngw_utils
 contains
 
 
-      subroutine tau_limb_advance(me, master, im, levs, ddd, curdate,   &
-	    j1_tau, j2_tau, ddy_j1tau, ddy_j2tau,  tau_sat,            kdt )  
-	    
-
-
-
-      use machine, only : kind_phys
+      subroutine tau_ddd_advance(me, master, im, levs, ddd, curdate,   &
+	    j1_tau, j2_tau, ddy_j1tau, ddy_j2tau,  tau_sat,   kdt )  
+	   
+      use machine, only : kind_phys      
+      use cires_ugwp_module, only : ntau_d1y, ntau_d2t       
+      use cires_ugwp_module, only : ugwp_taulat, days_limb,  tau_limb
       
-      use cires_ugwp_module_v1, only : ntau_d1y, ntau_d2t       
-      use cires_ugwp_module_v1, only : ugwp_taulat, days_limb,  tau_limb
-      
-!      use cires_ugwp_module, only : ugwp_qbolat,  days_merra, pmb127, days_y4md, days_y4ddd
-!      use cires_ugwp_module, only :  tau_qbo,  stau_qbo,  uqboe, u2 => uzmf_merra  
-
       implicit none
 
       integer, intent(in) ::    me, master, im, levs, ddd, curdate, kdt    
@@ -30,12 +23,8 @@ contains
       integer           :: i, j1, j2, k, it1, it2, iday
       real              :: tem,  tx1, tx2, w1, w2, day2, day1, ddx
       integer           :: yr1, yr2  
-!
-      integer           ::  iqbo1=1      
-!
-
-	 
-	 
+! 
+!	 
             it1 = 2
          do iday=1, ntau_d2t
 	    if (float(ddd) .lt. days_limb(iday) ) then
@@ -59,6 +48,8 @@ contains
 	 tau_sat(i) =  tx1*w1 + w2*tx2 
       enddo
       
+      return
+      
          if (me == master ) then	    
 	    print*, maxval(tau_limb), minval(tau_limb), ' tau_limb '
 	    print*, ntau_d2t
@@ -68,6 +59,6 @@ contains
 	 endif 
       return
 
-      end subroutine tau_limb_advance
+      end subroutine tau_ddd_advance
 
 end module cires_ugwp_ngw_utils

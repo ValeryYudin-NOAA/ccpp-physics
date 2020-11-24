@@ -8,13 +8,13 @@
 !! 1. GW Sources: Stochastic and physics based mechanisms for GW-excitations in the lower atmosphere, calibrated by the high-res analyses/forecasts, and observations (3 types of GW sources: orography, convection, fronts/jets).
 !! 2. GW Propagation: Unified solver for "propagation, dissipation and breaking" excited from all type of GW sources.
 !! 3. GW Effects: Unified representation of GW impacts on the "resolved" flow for all sources (energy-balanced schemes for momentum, heat and mixing).
-!! https://www.weather.gov/media/sti/nggps/Presentations%202017/02%20NGGPS_VYUDIN_2017_.pdf
+!! https://www.weather.gov/media/sti/nggps/Presentations%202017/02%20NGGPS_VYUDIN_2017.pdf
 
 module cires_ugwp
 
     use machine, only: kind_phys
 
-    use cires_ugwp_module, only: knob_ugwp_version, cires_ugwp_mod_init, cires_ugwp_mod_finalize
+    use cires_ugwp_module, only: cires_ugwp_init_modv0, cires_ugwp_dealloc
 
     use gwdps, only: gwdps_run
 
@@ -77,17 +77,11 @@ contains
     if (is_initialized) return
 
     if (do_ugwp .or. cdmbgwd(3) > 0.0) then
-      call cires_ugwp_mod_init (me, master, nlunit, input_nml_file, logunit, &
+      call cires_ugwp_init_modv0 (me, master, nlunit, input_nml_file, logunit, &
                                 fn_nml2, lonr, latr, levs, ak, bk, con_p0, dtp, &
-                                cdmbgwd(1:2), cgwf, pa_rf_in, tau_rf_in)
+                                cdmbgwd(1:2), cgwf)
     else
       write(errmsg,'(*(a))') "Logic error: cires_ugwp_init called but do_ugwp is false and cdmbgwd(3) <= 0"
-      errflg = 1
-      return
-    end if
-
-    if (.not.knob_ugwp_version==0) then
-      write(errmsg,'(*(a))') 'Logic error: CCPP only supports version zero of UGWP'
       errflg = 1
       return
     end if
@@ -120,7 +114,7 @@ contains
 
     if (.not.is_initialized) return
 
-    call cires_ugwp_mod_finalize()
+    call cires_ugwp_dealloc()
 
     is_initialized = .false.
 
@@ -192,8 +186,9 @@ contains
 
     real(kind=kind_phys),    intent(inout), dimension(im, levs):: dudt, dvdt, dtdt
 
-    real(kind=kind_phys),    intent(in) :: con_g, con_pi, con_cp, con_rd, con_rv, con_fvirt, con_omega
-
+    real(kind=kind_phys),    intent(in) :: con_g, con_pi, con_cp, con_rd, con_rv, con_fvirt
+    real(kind=kind_phys),    intent(in) :: con_omega
+    
     real(kind=kind_phys),    intent(in), dimension(im) :: rain
 
     integer,                 intent(in) :: ntke
@@ -245,8 +240,8 @@ contains
           ugrs, vgrs, tgrs, qgrs(:,:,1), kpbl, prsi,del,prsl, prslk, phii, phil, &
           dtp, kdt, sgh30, hprime, oc, oa4, clx, theta, sigma, gamma, elvmax,    &
           dusfcg, dvsfcg, xlat_d, sinlat, coslat, area, cdmbgwd(1:2),            &
-          me, master, rdxzb, con_g, con_omega, zmtb, zogw, tau_mtb, tau_ogw,     &
-          tau_tofd, dudt_mtb, dudt_ogw, dudt_tms)
+          me, master, rdxzb, zmtb, zogw, tau_mtb, tau_ogw, tau_tofd,             &
+          dudt_mtb, dudt_ogw, dudt_tms)
 
     else                                    ! calling old GFS gravity wave drag as is
 

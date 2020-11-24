@@ -1,7 +1,9 @@
 !> \file GFS_GWD_generic.f
 !! This file contains the CCPP-compliant orographic gravity wave
 !! drag pre interstitial codes.
-
+!! add sgh30: [oro=GFS_Data(cdata%blk_no)%Sfcprop%oro-oro_uf=GFS_Data(cdata%blk_no)%Sfcprop%oro_uf]
+!!  mntvar=GFS_Data(cdata%blk_no)%Sfcprop%hprime
+!!
 module GFS_GWD_generic_pre
 
 contains
