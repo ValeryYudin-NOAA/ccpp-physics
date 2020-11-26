@@ -1,3 +1,9 @@
+module cires_vert_orodis
+
+
+contains
+
+
 ! subroutine ugwp_drag_mtb
 ! subroutine ugwp_taub_oro  
 ! subroutine ugwp_oro_lsatdis  
@@ -6,8 +12,8 @@
         elvpd, elvp, hprime , sigma, theta, oc,  oa4, clx4, gam, zpbl,  &
         up, vp, tp, qp, dp, zpm, zpi, pmid, pint, idxzb, drmtb,taumtb)
 
-      use ugwp_common,  only : bnv2min, grav, grcp, fv, rad_to_deg, dw2min, velmin, rdi
-      use ugwp_oro_init,only : nridge, cdmb, fcrit_mtb, frmax, frmin, strver
+      use ugwp_common,  only  : bnv2min, grav, grcp, fv, rad_to_deg, dw2min, velmin, rdi
+      use ugwp_oro_init, only : nridge, cdmb, fcrit_mtb, frmax, frmin, strver
       
       implicit none   
 !========================
@@ -16,8 +22,6 @@
 ! version 2 => kdn_2005 ; Kim & Doyle in NRL-2005
 ! version 3 => ncep/gfs-2017 -gfs_2017 with lm1997
 !======================== 
-      
-!     character(len=8)  ::  strver = 'vay_2018'
 !     real, parameter   ::  Fcrit_mtb  = 0.7   
       
       integer, intent(in)              ::  nz     
@@ -33,6 +37,9 @@
 
       real, dimension(nz),    intent(in) :: up, vp, tp, qp, dp, zpm, pmid
       real, dimension(nz+1),  intent(in) :: zpi, pint
+
+      ! character(len=*), intent(out) :: errmsg
+      ! integer,          intent(out) :: errflg
 !
       real, dimension(nz+1)              :: zpi_zero
       real, dimension(nz)                :: zpm_zero
@@ -47,7 +54,12 @@
                  phiang, ang, pe, ek,                     &
                  cang, sang, ss2, cs2, zlen,  dbtmp,      &
                  hamp, bgamm, cgamm      
-  
+ 
+
+    ! Initialize CCPP error handling variables
+    ! errmsg = ''
+    ! errflg = 0
+ 
 !==================================================
 !
 !     elvp + hprime <=>elvp + nridge*hprime, ns =2
@@ -73,11 +85,11 @@
 
       mtb_fix = cdmb*sigma/hamp        !hamp  ~ 2*hprime and 1/sigfac = 0.25 is inside 1/hamp
 
-      if (mtb_fix == 0.) then
-        print *, cdmb, sigma, hamp
-        print *,  ' MTB == 0'
-           stop
-      endif
+      ! if (mtb_fix == 0.) then
+      !    write(errmsg,'(*(a))') cdmb, sigma, hamp, ' MTB == 0'
+      !    errflg = 1
+      !    return
+      ! endif
 
       if (strver == 'vay_2018')  then    
 
@@ -95,10 +107,12 @@
              bn2, uhm, vhm, bn2hm, rhohm)   
      
         umag = max(sqrt(uhm*uhm + vhm*vhm), velmin)       !velmin=dw2min =1.0 m/s 
-        if (bn2hm .le. 0.0) then
-         print *,  ' unstable MF for MTB  -RETURN '
-         RETURN                        ! unstable PBL
-        endif
+        ! if (bn2hm .le. 0.0) then
+        !    write(errmsg,'(*(a))') 'unstable MF for MTB  - RETURN '
+        !    errflg = 1
+        !    return    ! unstable PBL
+        ! end if
+
         bnmag =sqrt(bn2hm)
 
         frd_src  =  min(hamp*bnmag/umag, frmax)        ! frmax =10.
@@ -272,6 +286,7 @@
           tautot, tauogw,  taulee, drlee, tau_src, kxridge, kdswj, krefj, kotr)
 !	  
       use ugwp_common,       only : bnv2min, grav, pi, pi2, dw2min, velmin
+      use ugwp_common,       only : mkz2min, mkzmin     
       use cires_ugwp_module, only : frcrit, ricrit, linsat
       use ugwp_oro_init,     only :  hpmax, cleff, frmax
       use ugwp_oro_init,     only :  nwdir, mdir, fdir    
@@ -280,7 +295,7 @@
       use ugwp_oro_init,     only :  coro, nridge, odmin, odmax
       use ugwp_oro_init,     only :  strver
 ! 
-      use ugwp_oro_init,     only : mkz2min, lzmax, zbr_pi
+      use ugwp_oro_init,     only : zbr_pi
 ! ---
 ! 
 ! define oro-GW fluxes: taulin,  taufrb amd if kdswj > 0 (LWB-lee wave breaking)
@@ -761,15 +776,15 @@
 !
 !--------------------------------------
 ! 
-!     call ugwp_oro_lsatdis( krefj, levs,  tauogw(j),  tautot(j), tau_src, kxw,      &
-!           fcor(j), c2f2(j), up, vp, tp, qp, dp, zpm, zpi, pmid1, pint1,            &
-!	   xn, yn, umag, drtau, kdis_oro)
+!     call ugwp_oro_lsatdis( krefj, levs,  tauogw(j),  tautot(j), tau_src,      &
+!           con_pi, con_g, kxw, fcor(j), c2f2(j), up, vp, tp, qp, dp, zpm, zpi, &
+!           pmid1, pint1, xn, yn, umag, drtau, kdis_oro)
  
       subroutine ugwp_oro_lsatdis( krefj, levs,  tauogw,  tautot,  tau_src,     &
-           kxw, fcor,  kxridge, up, vp, tp, qp, dp, zpm, zpi, pmid, pint,       &
-           xn, yn, umag, drtau, kdis)
+           pi, grav, kxw, fcor,  kxridge, up, vp, tp, qp, dp, zpm, zpi,        &
+           pmid, pint, xn, yn, umag, drtau, kdis)
 
-      use ugwp_common,       only : bnv2min, grav, pi, pi2, dw2min, velmin, rgrav
+      use ugwp_common,       only : dw2min, velmin
       use cires_ugwp_module, only : frcrit, ricrit, linsat, hps, rhp1, rhp2
       use cires_ugwp_module, only : kvg, ktg, krad, kion
       use ugwp_oro_init,     only : coro , fcrit_sm , fcrit_sm2
@@ -781,6 +796,8 @@
 
       real , dimension(levs+1)   ::  tau_src
 
+      real, intent(in)           ::  pi, grav
+
       real, dimension(levs) , intent(in)     ::  up, vp, tp, qp, dp, zpm
       real, dimension(levs+1), intent(in)    ::  zpi, pmid, pint
       real , intent(in)                      ::  xn, yn, umag
@@ -791,6 +808,7 @@
 !
 ! locals
 !
+      real  :: bnv2min, pi2, rgrav
       real                       ::  uref, udir, uf2, ufd, uf2p
       real, dimension(levs+1)    ::  tauz
       real, dimension(levs)      ::  rho
@@ -803,6 +821,10 @@
       real                       :: fdis, mkzi, keff_m, keff_t
       real                       :: betadis, betam, betat, cdfm, cdft
       real                       :: fsat, hsat, hsat2, kds , c2f2
+
+      pi2 = 2.0*pi
+      bnv2min = (pi2/1800.)*(pi2/1800.)
+      rgrav = 1.0/grav
 
       drtau(1:levs) =  0.0
       kdis (1:levs) =  0.0
@@ -926,15 +948,15 @@
       end  subroutine ugwp_oro_lsatdis
 !
 !
-     subroutine ugwp_tofd(im, levs, sigflt, elvmax, zpbl,  u, v, zmid, &
+     subroutine ugwp_tofd(im, levs, con_cp, sigflt, elvmax, zpbl, u, v, zmid, &
                           utofd, vtofd, epstofd, krf_tofd)
        use machine ,      only : kind_phys 
-       use ugwp_common  , only :  rcpd2         
        use ugwp_oro_init, only : n_tofd, const_tofd, ze_tofd, a12_tofd, ztop_tofd
 !       
      implicit none
 !     
      integer ::  im, levs
+     real(kind_phys) :: con_cp
      real(kind_phys), dimension(im, levs)  ::  u, v, zmid
      real(kind_phys), dimension(im)        ::  sigflt, elvmax, zpbl
      real(kind_phys), dimension(im, levs)  ::  utofd, vtofd, epstofd, krf_tofd
@@ -942,10 +964,12 @@
 ! locals
 !
      integer :: i, k
+     real    :: rcpd2
      real    :: sgh = 30.
      real    :: sgh2, ekin, zdec, rzdec, umag, zmet, zarg, zexp, krf
 !     
      utofd =0.0 ; vtofd = 0.0 ;  epstofd =0.0 ; krf_tofd =0.0    
+     rcpd2 = 0.5/con_cp
 !      
      
      do i=1, im 
@@ -972,47 +996,6 @@
      enddo
 !                
      end subroutine ugwp_tofd  
-!
-!     
-     subroutine ugwp_tofd1d(levs, sigflt, elvmax, zsurf, zpbl,  u, v, &
-                            zmid, utofd, vtofd, epstofd, krf_tofd)
-       use machine ,      only : kind_phys 
-       use ugwp_common  , only :  rcpd2         
-       use ugwp_oro_init, only : n_tofd, const_tofd, ze_tofd, a12_tofd, ztop_tofd
-!       
-     implicit none
-      integer ::  levs
-      real(kind_phys), dimension(levs)  ::   u, v, zmid
-      real(kind_phys)                   ::  sigflt, elvmax, zpbl, zsurf
-      real(kind_phys), dimension(levs)  ::  utofd, vtofd, epstofd, krf_tofd
-!
-! locals
-!
-     integer :: i, k
-     real    :: sghmax = 5.
-     real    :: sgh2, ekin, zdec, rzdec, umag, zmet, zarg, ztexp, krf
-!     
-     utofd =0.0 ; vtofd = 0.0 ;  epstofd =0.0 ; krf_tofd =0.0    
-!         
-       zdec = max(n_tofd*sigflt, zpbl)          ! ntimes*sgh_turb or Zpbl
-       zdec = min(ze_tofd, zdec)                ! cannot exceed 18 km
-       rzdec = 1.0/zdec
-       sgh2 = max(sigflt*sigflt, sghmax*sghmax) ! 25 meters dz-of the first layer
-       
-      do k=1, levs  
-         zmet = zmid(k)-zsurf   
-      if (zmet > ztop_tofd) cycle
-         ekin = u(k)*u(k) + v(k)*v(k)
-         umag = sqrt(ekin)
-         zarg = zmet*rzdec
-         ztexp = exp(-zarg*sqrt(zarg))
-         krf   = const_tofd* a12_tofd *sgh2* zmet ** (-1.2) *ztexp
 
-         utofd(k)    = -krf*u(k)
-         vtofd(k)    = -krf*v(k)
-         epstofd(k)  = rcpd2*krf*ekin  ! more accurate heat/mom form using "implicit tend-solver"
-                                       ! to update momentum and temp-re; epstofd(k) can be skipped
-         krf_tofd(k) = krf
-     enddo
-!                
-     end subroutine ugwp_tofd1d    
+     
+end module cires_vert_orodis

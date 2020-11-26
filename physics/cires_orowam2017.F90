@@ -5,9 +5,9 @@ contains
 
 
       subroutine oro_wam_2017(im, levs,npt,ipt, kref,kdt,me,master, &
-     &   dtp,dxres, taub, u1, v1, t1, xn, yn, bn2, rho, prsi, prsL, &
-     &   grav, omega, con_rd, del, sigma, hprime, gamma, theta,  &
-     &   sinlat, xlatd, taup, taud, pkdis)
+        dtp,dxres, taub, u1, v1, t1, xn, yn, bn2, rho, prsi, prsL,  &
+        grav, omega, con_rd, del, sigma, hprime, gamma, theta,      &
+        sinlat, xlatd, taup, taud, pkdis)
 ! 
       USE MACHINE ,      ONLY : kind_phys
 !      
@@ -59,8 +59,8 @@ contains
       real(kind=kind_phys), parameter  :: hps =7000., rhp2 = .5/hps
       real(kind=kind_phys), parameter  :: cxmin=0.5, cxmin2=cxmin*cxmin
 
-      real  :: akx(nworo),  cxoro(nworo), akx2(nworo)
-      real  :: aspkx(nworo), c2f2(nworo) , cdf2(nworo)
+      real  :: akx(nworo),  cxoro(nworo),  akx2(nworo)
+      real  :: aspkx(nworo), c2f2(nworo),  cdf2(nworo)
       real  :: tau_sp(nworo,levs+1), wkdis(nworo, levs+1)
       real  :: tau_kx(nworo),taub_kx(nworo)
       real, dimension(nworo, levs+1)  :: wrms, akzw
@@ -286,7 +286,7 @@ contains
      &           grav, con_rd,                                       &
      &           delp, rho, bn2, uzi, rhoi, ktur, kalp, dzi, xn, yn)
 
-      use ugwp_common_v1 ,  only : velmin, dw2min
+      use ugwp_common ,  only : velmin, dw2min
       implicit none
 
       integer :: nz, nzi

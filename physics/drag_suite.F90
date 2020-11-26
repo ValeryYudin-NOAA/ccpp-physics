@@ -7,6 +7,8 @@
 
       contains
 
+!> \section arg_table_drag_suite_init Argument Table
+!!
       subroutine drag_suite_init()
       end subroutine drag_suite_init
 
@@ -818,7 +820,7 @@ IF ( (do_gsl_drag_ls_bl).and.                            &
      enddo
    enddo
 !
-!  no drag when bnv2.lt.0
+!  no drag when bnv2.lt.0  ... vay  bnv2 = min_value
 !
    do k = kts,kpblmax
      do i = its,im
@@ -892,7 +894,7 @@ IF ( (do_gsl_drag_ls_bl).and.                            &
        if ( gwd_opt_ls .NE. 0 ) then
           taub(i)  = xlinv(i) * roll(i) * ulow(i) * ulow(i)                       &
                    * ulow(i) * gfobnv * efact
-       else     ! We've gotten what we need for the blocking scheme
+       else     ! We've gotten what we need for the blocking scheme ????
           taub(i) = 0.0
        end if
      else
@@ -1042,7 +1044,7 @@ IF ( (do_gsl_drag_tofd).and.(ss_taper.GT.1.E-02) ) THEN
          !(IH*kflt**n1)**-1 = (0.00102*0.00035**-1.9)**-1 = 0.00026615161
           var_temp = MIN(varss(i),varmax_fd) +                            &
                      MAX(0.,beta_fd*(varss(i)-varmax_fd))
-          var_temp = MIN(var_temp, 250.)
+          var_temp = MIN(var_temp, 250.)                  ! another limit 250 m !
           a1=0.00026615161*var_temp**2
 !         a1=0.00026615161*MIN(varss(i),varmax)**2
 !         a1=0.00026615161*(0.5*varss(i))**2
@@ -1050,7 +1052,7 @@ IF ( (do_gsl_drag_tofd).and.(ss_taper.GT.1.E-02) ) THEN
          a2=a1*0.005363
          ! Revise e-folding height based on PBL height and topographic std. dev. -- M. Toy 3/12/2018
          H_efold = max(2*varss(i),hpbl(i))
-         H_efold = min(H_efold,1500.)
+         H_efold = min(H_efold,1500.)                    ! another limit efold_min = 1500m
          DO k=kts,km
             wsp=SQRT(u1(i,k)**2 + v1(i,k)**2)
             ! alpha*beta*Cmd*Ccorr*2.109 = 12.*1.*0.005*0.6*2.109 = 0.0759
@@ -1189,7 +1191,7 @@ IF ( (do_gsl_drag_ls_bl) .and.                                       &
           cd = max(2.0-1.0/od(i),0.0)
           taufb(i,kts) = 0.5 * roll(i) * coefm(i) / max(dxmax_ls,dxy(i))**2 * cd * dxyp(i)   &
                          * olp(i) * zblk * ulow(i)**2
-          tautem = taufb(i,kts)/float(kblk-kts)
+          tautem = taufb(i,kts)/float(kblk-kts)      ! dk_levels  ?????
           do k = kts+1, kblk
             taufb(i,k) = taufb(i,k-1) - tautem
           enddo
@@ -1309,7 +1311,8 @@ endif
    end subroutine drag_suite_run
 !-------------------------------------------------------------------
 !
-
+!> \section arg_table_drag_suite_finalize Argument Table
+!!
       subroutine drag_suite_finalize()
       end subroutine drag_suite_finalize
 

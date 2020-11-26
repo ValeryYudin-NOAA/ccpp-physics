@@ -1,4 +1,4 @@
-!
+!!23456	
        module sso_coorde
 !
 ! specific to COORDE-2019 project OGW switches/sensitivity
@@ -122,7 +122,6 @@
      &                 SIGMA, GAMM,   ELVMAX,
      &                 DUSFCg, DVSFCg, xlatd, sinlat, coslat, spgrid,
      &                 cdmbgwd(1:2), me, master, rdxzb,
-     &                 con_g, con_omega,
      &                 zmtb, zogw, tau_mtb, tau_ogw, tau_tofd,
      &                 du3dt_mtb, du3dt_ogw, du3dt_tms)
 !
@@ -162,8 +161,6 @@
 !--------
          call slat_geos5_tamp(im, tamp_mpa, xlatd, tau_ngw)
 
-!        call slat_geos5(im, xlatd, tau_ngw)
-!
          if (abs(1.0_kp-cdmbgwd(3)) > 1.0e-6_kp) then
            if (cdmbgwd(4) > zero) then
              do i=1,im
@@ -289,7 +286,7 @@
      &    PRSI,DEL,PRSL,PRSLK,PHII, PHIL,DTP,KDT,
      &    sgh30, HPRIME,OC,OA4,CLX4,THETA,vSIGMA,vGAMMA,ELVMAXD,
      &    DUSFC, DVSFC,  xlatd, sinlat, coslat, sparea,
-     &    cdmbgwd, me, master, rdxzb, con_g, con_omega,
+     &    cdmbgwd, me, master, rdxzb,
      &    zmtb, zogw, tau_mtb, tau_ogw, tau_tofd,
      &    dudt_mtb, dudt_ogw, dudt_tms)
 !----------------------------------------
@@ -304,7 +301,7 @@
       use ugwp_common ,  only : rgrav,   grav,  cpd, rd, rv, rcpd, rcpd2
      &,                         pi,      rad_to_deg, deg_to_rad, pi2
      &,                         rdi,     gor,    grcp, gocp,  fv, gr2
-     &,                         bnv2min, dw2min, velmin, arad
+     &,                         bnv2min, dw2min, velmin, arad, omega1
  
       use ugwp_oro_init, only : rimin,  ric,     efmin,     efmax
      &,                         hpmax,  hpmin,   sigfaci => sigfac
@@ -315,8 +312,11 @@
      &,                         cdmb,   cleff,   fcrit_gfs, fcrit_mtb
      &,                         n_tofd, ze_tofd, ztop_tofd
 
-      use cires_ugwp_module, only : kxw,  max_kdis, max_axyz
-      use sso_coorde,        only : pgwd, pgwd4, debugprint
+      use cires_ugwp_module,    only : kxw,  max_kdis, max_axyz
+      use sso_coorde,           only : pgwd, pgwd4, debugprint
+      
+      use cires_ugwp_orolm97_v1, only : ugwp_tofd1d 
+      use cires_orowam2017,      only : oro_wam_2017
 !----------------------------------------
       implicit none
       integer, parameter :: kp = kind_phys
@@ -344,7 +344,7 @@
       real(kind=kind_phys), intent(in) :: vSIGMA(IM),  vGAMMA(IM)
       real(kind=kind_phys)             :: SIGMA(IM),   GAMMA(IM)
 
-      real(kind=kind_phys), intent(in) :: con_g, con_omega
+! CCPP-damn !!!      real(kind=kind_phys), intent(in) :: con_g, con_omega
       
 !output -phys-tend
       real(kind=kind_phys),dimension(im,km),intent(out) ::
@@ -444,20 +444,9 @@
 
       dxres   = pi2*arad/float(IMX)
       hdxres  = 0.5_kp*dxres
-!     shilmin = sgrmin/nhilmax            ! not used - Moorthi
 
-!     gammin = min(sso_min/dsmax, 1.)     ! Moorthi - with this results are not reproducible
-      gammin = min(sso_min/dxres, 1.)     ! Moorthi
-
-!     sigmin = 2.*hpmin/dsmax      !dxres ! Moorthi - this will not reproduce
-      sigmin = 2.*hpmin/dxres      !dxres
-
-!     if (kdt == 1) then
-!       print *, sgrmax, sgrmin , ' min-max sparea '
-!       print *, 'sigmin-hpmin-dsmax', sigmin, hpmin, dsmax
-!       print *, 'dxres/dsmax ', dxres, dsmax
-!       print *, ' shilmin gammin ', shilmin, gammin
-!     endif
+      gammin = min(sso_min/dxres, 1.)     
+      sigmin = 2.*hpmin/dxres              !dxres
 
       kxridge = float(IMX)/arad * cdmbgwd(2)
 
@@ -1067,16 +1056,23 @@
 !         inv_b2eff =  0.5*sigres/heff 	
 !       XLINV(I) = max(kxridge, inv_b2eff)           ! 0.5*sigma(j)/heff = 1./Lridge
         dtfac(:) =  1.0
-       
+! Latest version	
+!       call oro_wam_2017(im, km, npt, ipt, kref, kdt, me, master,             &
+!           dtp, dxres, taub, u1, v1, t1, xn, yn, bnv2, ro, prsi,prsl,          &
+!           grav, omega1, rd,                                                &
+!           del, sigma, hprime, gamma, theta, sinlat, xlatd, taup, taud, pkdis) 
+! 
+! CCPP version Oct 2020, bug.... not "Rd" some one added
+!     
         call oro_wam_2017(im, km, npt, ipt, kref, kdt, me, master,
      &       dtp, dxres, taub, u1, v1, t1, xn, yn, bnv2, ro, prsi,prsL,
-     &       con_g, con_omega,
+     &       grav, omega1, rd,
      &       del, sigma, hprime, gamma, theta,
      &       sinlat, xlatd, taup, taud, pkdis)
      
       endif            !  oro_wam_2017 - LINSATDIS-solver of WAM-2017
 !
-!--------------------------- OROGW-solver of WAM2017
+!------------- OROGW-solver of WAM2017 + TOFD
 ! 
 ! TOFD as in BELJAARS-2004
 !
@@ -1099,7 +1095,7 @@
             vp1(k) = v1(j,k)
           enddo
 
-          call ugwp_tofd1d(km, sigflt, elvmaxd(j), zsurf, zpbl,
+          call ugwp_tofd1d(km, cpd, dtp, sigflt, zsurf, zpbl,
      &             up1, vp1, zpm,  utofd1, vtofd1, epstofd1, krf_tofd1)
 
           do k=1,km
@@ -1301,12 +1297,12 @@
      &,                            omega2,     rcpd2,  pi,    pi2, fv
      &,                            rad_to_deg, deg_to_rad
      &,                            rdi,        gor,    grcp,   gocp
-     &,                            bnv2min,    dw2min, velmin, gr2
+     &,                         bnv2min, bnv2max, dw2min, velmin, gr2
 !
-      use ugwp_wmsdis_init, only : hpscale, rhp2,    bv2min,   gssec
-     &,                            v_kxw,   v_kxw2,  tamp_mpa, zfluxglob
+      use ugwp_wmsdis_init, only : hpscale, rhp2    
+     &,                            v_kxw,   v_kxw2,  tamp_mpa
      &,                            maxdudt, gw_eff,  dked_min
-     &,                            nslope,  ilaunch, zmsi
+     &,                            nslope,  ilaunch
      &,                            zci,     zdci,    zci4, zci3, zci2
      &,                            zaz_fct, zcosang, zsinang
      &,                            nwav,    nazd,    zcimin, zcimax
@@ -1346,7 +1342,8 @@
       real, parameter   :: minvel = 0.5_kp      !
       real, parameter   :: epsln  = 1.0e-12_kp  !
       real, parameter   :: zero   = 0.0_kp, one = 1.0_kp, half = 0.5_kp
-
+      
+      real, parameter   :: zms_l  = 2000.0, zms = pi2 / zms_l, zmsi = 1.0 / zms
 !vay-2018
 
       real              :: taux(klon,klev+1)    ! EW component of vertical momentum flux (pa)
@@ -1371,7 +1368,7 @@
 !23456
        real  :: zul(klon,nazd)                ! velocity in azimuthal direction at launch level
        real  :: zci_min(klon,nazd)
-!      real  :: zcrt(klon,klev,nazd)          ! not used - do we need it?  Moorthi
+
        real  :: zact(klon, nwav, nazd)        ! if =1 then critical level encountered => c-u
 !      real  :: zacc(klon, nwav, nazd)        ! not used!
 !
@@ -1485,7 +1482,7 @@
 !          zbn2(jl,jk)    =  grav2cpd/zthm1(jl,jk)
            zbn2(jl,jk)    =  grav2cpd*zthm1
      &                    * (one+rcpdl*(tm1(jl,jk)-tm1(jl,jk-1))/zdelp)
-           zbn2(jl,jk)    = max(min(zbn2(jl,jk), gssec), bv2min)
+           zbn2(jl,jk)    = max(min(zbn2(jl,jk), bnv2max), bnv2min)
            zbvfhm1(jl,jk) = sqrt(zbn2(jl,jk))       ! bn = sqrt(bn2)
          enddo
        enddo
@@ -1669,36 +1666,8 @@
      &                          + sign(minvel,zci(inc)-zci_min(jl,iazi))
             enddo
           enddo
-!
-!   zdfl not used! - do we need it? Moorthi
-! integrate to get critical-level contribution to mom deposition
-! ---------------------------------------------------------------
-!         do inc=1, nwav
-!           zcinc = zdci(inc)
-!           do jl=1,klon
-!             zdfl(jl,jk,iazi) = zdfl(jl,jk,iazi) +
-!    &                zacc(jl,inc,iazi)*zflux(jl,inc,iazi)*zcinc
-!           enddo
-!         enddo
-! --------------------------------------------
-! get weighted average of phase speed in layer  zcrt is not used - do we need it? Moorthi
-! --------------------------------------------
-!         do jl=1,klon
-!     write(0,*)' jk=',jk,' jl=',jl,' iazi=',iazi, zdfl(jl,jk,iazi)
-!           if(zdfl(jl,jk,iazi) > epsln ) then
-!             zatmp = zcrt(jl,jk,iazi)
-!             do inc=1, nwav
-!                 zatmp = zatmp + zci(inc) *
-!    &                    zacc(jl,inc,iazi)*zflux(jl,inc,iazi)*zdci(inc)
-!             enddo
-!
-!             zcrt(jl,jk,iazi)  = zatmp / zdfl(jl,jk,iazi)
-!           else
-!              zcrt(jl,jk,iazi) = zcrt(jl,jk-1,iazi)
-!           endif
-!         enddo
 
-!
+
           do inc=1, nwav
             zcin  = zci(inc)
             if (abs(zcin) > epsln) then

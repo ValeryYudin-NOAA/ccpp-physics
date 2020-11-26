@@ -39,7 +39,9 @@
       use ugwp_common ,      only : pi, rad_to_deg, deg_to_rad, pi2
 
       use cires_ugwp_module, only : kxw,  max_kdis, max_axyz
-
+      
+      use cires_ugwp_orolm97_v1, only : ugwp_tofd1d
+      
       implicit none
       logical                                     ::   lprnt
       integer                                     ::   im, levs
@@ -259,7 +261,7 @@
           sigflt = hprime(j)*0.01  ! turb SSo(j) ...small-scale orography < 2-5 km ....
           zpbl   = hpbl(j)
  
-          call ugwp_tofd1d(levs, sigflt, elvPd, zpi(1), zpbl, up, vp, zpm,   &
+          call ugwp_tofd1d(levs, cpd, dtp, sigflt, zpi(1), zpbl, up, vp, zpm,   &
                            utofd1, vtofd1, epstofd1, krf_tofd1)
 
           do k=1, levs

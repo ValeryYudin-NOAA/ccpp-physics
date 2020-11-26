@@ -23,6 +23,8 @@
       use iccn_def,   only : ciplin, ccnin, ci_pres
       use iccninterp, only : read_cidata, setindxci, ciinterpol
 
+      use cires_ugwp_module,   only:  cires_indx_ugwp 
+
 #if 0
       !--- variables needed for calculating 'sncovr'
       use namelist_soilveg, only: salp_data, snupx
@@ -251,6 +253,16 @@
 !$OMP end do
          endif
 
+!> - Call  cires_indx_ugwp to read monthly-mean GW-tau diagnosed from FV3GFS-runs that resolve GW-activ
+         if (Model%do_ugwp) then
+!$OMP do schedule (dynamic,1)
+           do nb = 1, nblks
+            call cires_indx_ugwp (Model%blksz(nb), Model%me, Model%master, Data(nb)%Grid%xlat_d,  &
+                                  Data(nb)%Grid%jindx1_tau, Data(nb)%Grid%jindx2_tau,             &
+                                  Data(nb)%Grid%ddy_j1tau, Data(nb)%Grid%ddy_j2tau) 
+           enddo
+!$OMP end do
+         endif
 !$OMP end parallel
 
          !--- initial calculation of maps local ix -> global i and j, store in Tbd

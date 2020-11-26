@@ -7,6 +7,8 @@
 
       contains
 
+!> \section arg_table_gwdps_init Argument Table
+!!
       subroutine gwdps_init()
       end subroutine gwdps_init
 
@@ -196,7 +198,7 @@
       subroutine gwdps_run(                                             &
      &           IM,KM,A,B,C,U1,V1,T1,Q1,KPBL,                          &
      &           PRSI,DEL,PRSL,PRSLK,PHII, PHIL,DELTIM,KDT,             &
-     &           HPRIME,OC,OA4,CLX4,THETA,SIGMA,GAMMA,ELVMAX,           &
+     &           HPRIME,OC,OA4,CLX4,THETA,SIGMA,GAMMA,ELVMAXD,          &
      &           DUSFC,DVSFC,G, CP, RD, RV, IMX,                        &
      &           nmtvr, cdmbgwd, me, lprnt, ipr, rdxzb, errmsg, errflg)
 !
@@ -308,7 +310,7 @@
      &                     PHII(IM,KM+1)
       real(kind=kind_phys), intent(in) ::                               &
      &                     OC(IM), OA4(IM,4), CLX4(IM,4), HPRIME(IM)
-      real(kind=kind_phys), intent(inout) :: ELVMAX(IM)
+      real(kind=kind_phys), intent(in) :: ELVMAXD(IM)
       real(kind=kind_phys), intent(in) ::                               &
      &                     THETA(IM), SIGMA(IM), GAMMA(IM)
       real(kind=kind_phys), intent(out) :: DUSFC(IM), DVSFC(IM),        &
@@ -391,6 +393,7 @@
 !      integer   kreflm(IM), iwklm(im)
       integer   idxzb(im), ktrial, klevm1
 !
+      real(kind=kind_phys) :: ELVMAX(im)
       real(kind=kind_phys) gor,    gocp,  fv,    gr2,  bnv,  fr         &
      &,                    brvf,   cleff, tem,   tem1,  tem2, temc, temv&
      &,                    wdir,   ti,    rdz,   dw2,   shr2, bvf2      &
@@ -411,14 +414,37 @@
 ! non-dim sub grid mtn drag Amp (*j*)
 !     cdmb = 1.0/float(IMX/192)
 !     cdmb = 192.0/float(IMX)
+
+      
+      DO I = 1, IM
+         DUSFC(I) = 0.
+         DVSFC(I) = 0.	 
+      ENDDO
+!
+
+
+      IF ( NMTVR == 14) then 
+! ----  for lm and gwd calculation points
+        RDXZB(:)  = 0 
+        ipt = 0
+        npt = 0
+        DO I = 1,IM
+          IF (elvmax(i) > HMINMT .and. hprime(i) > hpmin)  then
+             npt      = npt + 1
+             ipt(npt) = i
+             if (ipr == i) npr = npt
+          ENDIF
+        ENDDO
+        IF (npt == 0) RETURN     ! No gwd/mb calculation done!
+!
+!
+!	
       cdmb = 4.0 * 192.0/float(IMX)
       if (cdmbgwd(1) >= 0.0) cdmb = cdmb * cdmbgwd(1)
 !
       npr = 0
-      DO I = 1, IM
-         DUSFC(I) = 0.
-         DVSFC(I) = 0.
-      ENDDO
+      elvmax = elvmaxd    ! fixing GFS-bug elvmax(inout) only (in)
+      
 !
       DO K = 1, KM
         DO I = 1, IM
@@ -440,21 +466,7 @@
       KMM2   = KM - 2
       LCAP   = KM
       LCAPP1 = LCAP + 1
-!
-!
-      IF ( NMTVR == 14) then 
-! ----  for lm and gwd calculation points
-        RDXZB(:)  = 0 
-        ipt = 0
-        npt = 0
-        DO I = 1,IM
-          IF (elvmax(i) > HMINMT .and. hprime(i) > hpmin)  then
-             npt      = npt + 1
-             ipt(npt) = i
-             if (ipr == i) npr = npt
-          ENDIF
-        ENDDO
-        IF (npt == 0) RETURN     ! No gwd/mb calculation done!
+      	
 !
 !       if (lprnt) print *,' npt=',npt,' npr=',npr,' ipr=',ipr,' im=',im
 !    &,' ipt(npt)=',ipt(npt)
@@ -486,6 +498,8 @@
 ! --- No mtn should be as high as KMLL (so we do not have to start at
 ! --- the top of the model but could do calc for all levels).
 !
+! Danger !!!!! inout ELVMAX(J) = min (ELVMAX(J) + sigfac * hprime(j), hncrit)
+! iwklm(i)  = 2
           DO I = 1, npt
             j = ipt(i)
             ELVMAX(J) = min (ELVMAX(J) + sigfac * hprime(j), hncrit)
@@ -1307,6 +1321,9 @@
       end subroutine gwdps_run
 !> @}
 
+!
+!> \section arg_table_gwdps_finalize Argument Table
+!!
       subroutine gwdps_finalize()
       end subroutine gwdps_finalize
 
