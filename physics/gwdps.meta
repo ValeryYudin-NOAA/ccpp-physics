@@ -228,14 +228,14 @@
   kind = kind_phys
   intent = in
   optional = F
-[elvmax]
+[elvmaxd]
   standard_name = maximum_subgrid_orography
   long_name = maximum of subgrid orography
   units = m
   dimensions = (horizontal_loop_extent)
   type = real
   kind = kind_phys
-  intent = inout
+  intent = in
   optional = F
 [dusfc]
   standard_name = instantaneous_x_stress_due_to_gravity_wave_drag
