@@ -22,7 +22,9 @@
 
       use iccn_def,   only : ciplin, ccnin, ci_pres
       use iccninterp, only : read_cidata, setindxci, ciinterpol
-
+      
+      use cires_tauamf_data,   only:  cires_indx_ugwp,  read_tau_amf, tau_amf_interp
+      use cires_tauamf_data,   only:  tau_limb,  days_limb, ugwp_taulat  
 #if 0
       !--- variables needed for calculating 'sncovr'
       use namelist_soilveg, only: salp_data, snupx
@@ -182,6 +184,13 @@
            ! No consistency check needed for in/ccn data, all values are
            ! hardcoded in module iccn_def.F and GFS_typedefs.F90
          endif
+	 
+!> - Call tau_amf dats for  ugwp_v1
+         if (Model%do_ugwp_v1) then	
+	 
+	    call read_tau_amf(Model%me, Model%master, errmsg, errflg)
+	    
+         endif         	 
 
 !$OMP end sections
 
@@ -250,6 +259,19 @@
            enddo
 !$OMP end do
          endif
+	 
+!> - Call  cires_indx_ugwp to read monthly-mean GW-tau diagnosed from FV3GFS-runs that resolve GW-activ
+         if (Model%do_ugwp_v1) then
+	 
+!$OMP do schedule (dynamic,1)
+           do nb = 1, nblks
+
+            call cires_indx_ugwp (Model%blksz(nb), Model%me, Model%master, Data(nb)%Grid%xlat_d,  &
+                                  Data(nb)%Grid%jindx1_tau, Data(nb)%Grid%jindx2_tau,             &
+                                  Data(nb)%Grid%ddy_j1tau, Data(nb)%Grid%ddy_j2tau) 
+           enddo
+!$OMP end do
+         endif
 
 !$OMP end parallel
 
@@ -311,7 +333,12 @@
          if (allocated(ciplin)  ) deallocate(ciplin)
          if (allocated(ccnin)   ) deallocate(ccnin)
          if (allocated(ci_pres) ) deallocate(ci_pres)
-
+	 
+         ! Deallocate UGWP-input arrays	 	 
+         if (allocated (ugwp_taulat))  deallocate(ugwp_taulat) 
+         if (allocated (tau_limb)) deallocate (tau_limb)   
+         if (allocated (days_limb)) deallocate(days_limb)  
+	  
          is_initialized = .false.
 
       end subroutine GFS_phys_time_vary_finalize
@@ -462,6 +489,18 @@
           enddo
 !$OMP end do
         endif
+	
+!> - Call tau_amf_interp() to obrtain tau_amf forcing interpolation for ugwpv1
+        if (Model%do_ugwp_v1) then
+!$OMP do schedule (dynamic,1)
+          do nb = 1, nblks
+          call tau_amf_interp(Model%me, Model%master, Model%blksz(nb),Model%idate, Model%fhour, &
+                             Data(nb)%Grid%jindx1_tau, Data(nb)%Grid%jindx2_tau,  &
+                             Data(nb)%Grid%ddy_j1tau,Data(nb)%Grid%ddy_j2tau,     &                             
+			     Data(nb)%Tbd%tau_amf)
+          enddo
+!$OMP end do
+        endif	
 
 !$OMP end parallel
 
