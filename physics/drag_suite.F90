@@ -1060,6 +1060,7 @@ IF ( (do_gsl_drag_tofd).and.(ss_taper.GT.1.E-02) ) THEN
             !  per Beljaars et al. (2004, QJRMS)
             utendform(i,k) = - var_temp*wsp*u1(i,k)/(1. + var_temp*deltim*wsp)
             vtendform(i,k) = - var_temp*wsp*v1(i,k)/(1. + var_temp*deltim*wsp)
+	    
             !IF(zl(i,k) > 4000.) exit
          ENDDO
       ENDIF
@@ -1260,7 +1261,10 @@ IF ( (do_gsl_drag_ls_bl) .and.                                       &
             eng1 = 0.5*( (rcs*(u1(i,k)+(dtaux+dtauxb)*deltim))**2 + &
                          (rcs*(v1(i,k)+(dtauy+dtauyb)*deltim))**2 )
             ! Modify theta tendency
-            dtdt(i,k) = dtdt(i,k) + max((eng0-eng1),0.0)/cp/deltim/prslk(i,k)
+!            dtdt(i,k) = dtdt(i,k) + max((eng0-eng1),0.0)/cp/deltim/prslk(i,k)
+! vay-nov2020
+!
+             dtdt(i,k) = dtdt(i,k) + max((eng0-eng1),0.0)/cp/deltim
          end if
 
          dusfc(i)   = dusfc(i) + taud_ls(i,k)*xn(i)*del(i,k) + taud_bl(i,k)*xn(i)*del(i,k)
