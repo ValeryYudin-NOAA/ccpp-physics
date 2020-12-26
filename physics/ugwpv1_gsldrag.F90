@@ -377,7 +377,7 @@ contains
 
 ! local variables
     integer :: i, k
-    real(kind=kind_phys), dimension(im)       :: sgh30          ! gwd_opt=1     
+    real(kind=kind_phys), dimension(im)       :: sgh30            
     real(kind=kind_phys), dimension(im, levs) :: Pdvdt, Pdudt
     real(kind=kind_phys), dimension(im, levs) :: Pdtdt, Pkdis
 !------------
@@ -438,17 +438,7 @@ contains
       du_ogwcol(:)=0. ; dv_ogwcol(:)=0. ; du_oblcol(:)=0. ; dv_oblcol(:)=0. 
       du_osscol(:)=0. ; dv_osscol(:)=0. ;du_ofdcol(:)=0.  ; dv_ofdcol(:)=0. 
       
-! ngw-diag
-!          if (me == master) then 
-!	  print *, ' ugwpv1-cdmbgwd', cdmbgwd(1), cdmbgwd(2)
-!          print*, im,  levs, ntrac, lonr, con_g, con_omega, con_pi, con_cp, con_rd, con_rv, con_rerth, con_fvirt
-!          print*, im,  levs, ntrac, lonr, dtp, fhzero,kdt, & 	   
-!          ldiag3d, lssav, flag_for_gwd_generic_tend,  do_gsl_drag_ls_bl,                &
-!          do_gsl_drag_ss, do_gsl_drag_tofd, do_ugwp_v1, do_ugwp_v1_orog_only, gwd_opt,  &
-!          do_tofd, ldiag_ugwp, cdmbgwd, jdat
-!	  print *, ' ugwpv1 ++++++++++++++++= '
-!	  endif 
-	                            
+!		                    
        dudt_ngw(:,:)=0. ; dvdt_ngw(:,:)=0. ; dtdt_ngw(:,:)=0. ; kdis_ngw(:,:)=0.  
           
 ! ngw+ogw - diag            
@@ -541,13 +531,12 @@ contains
 ! for TOFD we use now "varss" of GSL-drag  /not sgh30=abs(oro-oro_f)/
 ! only sum of integrated ORO+GW effects (dusfcg and dvsfcg) = sum(ogw + obl + oss*0 + ofd + ngw)
 !
-! OROGW_V1 suggests "orchestration" between OGW-effects and Mountain Blocking
-!      it examines options for the Scale-Aware (SA)formulation of SSO-effects
-!
-!       if ( me == master .and. kdt == 1) print *, ' bf orogw_v1 nmtvr=', nmtvr, ' do_tofd=', do_tofd
+! OROGW_V1 introduce "orchestration" between OGW-effects and Mountain Blocking
+!      it starts to examines options for the Scale-Aware (SA)formulation of SSO-effects
+!      if ( me == master .and. kdt == 1) print *, ' bf orogw_v1 nmtvr=', nmtvr, ' do_tofd=', do_tofd
        
          if (gwd_opt ==1 )sgh30 = 0.15*hprime       ! portion of the mesoscale SSO (~[oro_unfilt -oro_filt)
-         if (gwd_opt >1 ) sgh30 = varss             ! as in gsldrag
+         if (gwd_opt >1 ) sgh30 = varss             ! as in gsldrag: see drag_suite_run
               
        call orogw_v1 (im, levs,  lonr,  me, master,dtp, kdt, do_tofd,     &
                       con_g, con_omega, con_rd, con_cp, con_rv,con_pi,    &
@@ -561,7 +550,7 @@ contains
                       du_ogwcol, dv_ogwcol, du_oblcol, dv_oblcol,         &
                       du_ofdcol, dv_ofdcol, errmsg,errflg           )
 !		      
-! dusfcg = du_ogwcol + du_oblcol  + du_ofdcol                                  only 3 terms
+! orogw_v1: dusfcg = du_ogwcol + du_oblcol  + du_ofdcol                           only 3 terms
 !
 !
           if (kdt <= 2 .and. me == master) then
@@ -621,8 +610,8 @@ contains
        call calendar_ugwp(y4, month, day, ddd_ugwp)       
        curdate = y4*1000 + ddd_ugwp
 !       
-!       call ngwflux_update(me, master, im, levs, kdt, ddd_ugwp,curdate, &
-!	     tau_amf, xlat_d, sinlat,coslat, rain, tau_ngw)
+       call ngwflux_update(me, master, im, levs, kdt, ddd_ugwp,curdate, &
+	     tau_amf, xlat_d, sinlat,coslat, rain, tau_ngw)
                       
        call cires_ugwpv1_ngw_solv2(me, master, im,   levs,  kdt, dtp,   &
                       tau_ngw, tgrs, ugrs,  vgrs,   q1, prsl, prsi,     &
@@ -670,15 +659,12 @@ contains
      kdis_gw =  Pkdis +kdis_ngw               
 ! 
 ! add to previous phys-tendencies
-! ? accumulation of GFS ( pbl+gw+rf=0 )  
+! ?-accumulation of GFS ( pbl + gw =0   rf  should be taken out from physics, inside FV3-dycore)  
 
      dudt  = dudt  + dudt_ngw
      dvdt  = dvdt  + dvdt_ngw 
      dtdt  = dtdt  + dtdt_ngw   
      
-!    if (maxval(tgrs) > 380.) &
-!    print *, ' VAYP tgrs in ugwpv1_gsldrag_run ', maxval(tgrs), minval(tgrs)
-
     end subroutine ugwpv1_gsldrag_run
 !! @}
 !>@}
